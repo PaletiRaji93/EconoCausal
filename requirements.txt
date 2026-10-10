@@ -1,0 +1,12 @@
+pandas
+numpy
+scikit-learn
+lightgbm
+dowhy
+econml
+scipy
+plotly
+fastapi
+uvicorn
+mlflow
+pyarrow

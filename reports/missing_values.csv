@@ -1,0 +1,10 @@
+column,missing_count,missing_percent
+customer_id,0,0.0
+age,0,0.0
+past_purchases,0,0.0
+previous_spend,0,0.0
+loyalty_score,0,0.0
+assigned,0,0.0
+discount_amount,0,0.0
+converted,0,0.0
+order_value,0,0.0

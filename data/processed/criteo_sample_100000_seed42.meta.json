@@ -1,0 +1,24 @@
+{
+  "name": "Criteo Uplift Prediction Dataset",
+  "version": "v2.1",
+  "official_page": "https://ailab.criteo.com/criteo-uplift-prediction-dataset/",
+  "files_page": "https://huggingface.co/datasets/criteo/criteo-uplift/tree/main",
+  "license_note": "Expected: non-commercial CC BY-NC-SA 4.0. YOU MUST CONFIRM the license on the official page and record it in docs/dataset_card.md before use.",
+  "source_file": "criteo-research-uplift-v2.1.csv",
+  "sampling_method": "seeded uniform random sample via per-row random keys (no replacement)",
+  "seed": 42,
+  "rows_scanned": 13979592,
+  "rows_sampled": 100000,
+  "treatment_col": "treatment",
+  "outcome_col": "visit",
+  "treated_share": 0.8505,
+  "outcome_rate_by_group": {
+    "treated": 0.048962,
+    "control": 0.038786
+  },
+  "extra_columns_in_file": [],
+  "schema_hash": "1d920eb92eea",
+  "outcome_interpretation": "user visited the advertiser site (post-treatment behaviour)",
+  "design": "randomised ad treatment (assignment is random, ~85% treated in v2.1)",
+  "note": "Treatment is advertising exposure, not a known discount amount."
+}

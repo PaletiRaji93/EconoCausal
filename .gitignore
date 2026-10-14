@@ -219,3 +219,10 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 Econoenv/
+
+@"
+
+# Local datasets and generated project copy
+data/raw/
+EconoCausal_part1_2/
+"@ | Add-Content .gitignore

@@ -1,0 +1,55 @@
+{
+  "version_id": "synthetic_retail-continuous-linear-20261014123859-42",
+  "dataset": "synthetic_retail",
+  "treatment": "discount_amount",
+  "outcome": "conversion",
+  "n_train": 10794,
+  "support": {
+    "levels": [
+      0.0,
+      5.0,
+      10.0,
+      20.0
+    ],
+    "counts": [
+      5866,
+      1705,
+      1568,
+      1655
+    ],
+    "min_positive_dose": 5.0,
+    "max_dose": 20.0,
+    "warnings": []
+  },
+  "params": {
+    "nuisance": "gbm",
+    "cv": 3,
+    "seed": 42
+  },
+  "assumption": "effect linear in dose within observed support",
+  "synthetic_data": true,
+  "feature_cols": [
+    "age",
+    "income_k",
+    "tenure_months",
+    "past_purchases",
+    "avg_basket",
+    "region",
+    "is_member"
+  ],
+  "train_rows": 10794,
+  "validation_rows": 3598,
+  "test_rows": 3598,
+  "seed": 42,
+  "nuisance": "gbm",
+  "cv": 3,
+  "metrics": {
+    "evaluation_dose": 10.0,
+    "test_rows": 3598,
+    "mean_predicted_effect": 0.07857473086875189,
+    "mean_synthetic_true_effect": 0.06220359060589216,
+    "mae_vs_synthetic_truth": 0.016982555296070335,
+    "rmse_vs_synthetic_truth": 0.021091757669905356
+  },
+  "note": "Synthetic educational evaluation only; results do not establish real-world discount effectiveness. true_effect is used only for evaluation, never as a model feature."
+}

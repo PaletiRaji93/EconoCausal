@@ -1,0 +1,32 @@
+{
+  "version_id": "criteo-linear-20261014095013-42",
+  "dataset": "criteo",
+  "treatment": "treatment",
+  "outcome": "visit",
+  "n_train": 60000,
+  "n_treated_train": 51028,
+  "features": [
+    "f0",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "f5",
+    "f6",
+    "f7",
+    "f8",
+    "f9",
+    "f10",
+    "f11"
+  ],
+  "params": {
+    "estimator": "linear",
+    "nuisance": "gbm",
+    "cv": 3,
+    "seed": 42,
+    "n_estimators": 200,
+    "min_samples_leaf": 50
+  },
+  "trained_utc": "2026-10-14T09:50:13.097338+00:00",
+  "estimator_class": "LinearDML"
+}

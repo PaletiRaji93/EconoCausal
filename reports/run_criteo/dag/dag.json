@@ -1,0 +1,80 @@
+{
+  "treatment": "treatment",
+  "outcome": "visit",
+  "randomized": true,
+  "confounders": [
+    "f0",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "f5",
+    "f6",
+    "f7",
+    "f8",
+    "f9",
+    "f10",
+    "f11"
+  ],
+  "unobserved_assumed": [
+    "U_unmeasured"
+  ],
+  "edges": [
+    {
+      "from": "treatment",
+      "to": "visit",
+      "reason": "Treatment may change the outcome (effect of interest)."
+    },
+    {
+      "from": "12 pretreatment covariates",
+      "to": "visit",
+      "reason": "Customer characteristics influence baseline outcome."
+    }
+  ],
+  "edge_reasons": [
+    {
+      "from": "treatment",
+      "to": "visit",
+      "reason": "Treatment may change the outcome (effect of interest)."
+    },
+    {
+      "from": "12 pretreatment covariates",
+      "to": "visit",
+      "reason": "Customer characteristics influence baseline outcome."
+    }
+  ],
+  "assumptions": [
+    {
+      "name": "Randomised treatment",
+      "kind": "design assumption",
+      "text": "'treatment' was assigned at random, so no covariate affects assignment (no covariate->treatment edges). Verify with balance checks."
+    },
+    {
+      "name": "Overlap / positivity",
+      "kind": "identification assumption",
+      "text": "Every covariate profile has a non-zero chance of being treated and untreated. Checked empirically by propensity-score overlap diagnostics."
+    },
+    {
+      "name": "Consistency / SUTVA",
+      "kind": "identification assumption",
+      "text": "A unit's observed outcome equals its potential outcome under the treatment received, and one customer's treatment does not affect another's outcome (no interference)."
+    },
+    {
+      "name": "Pretreatment covariates only",
+      "kind": "design choice",
+      "text": "Covariates are measured before treatment. Post-treatment variables (e.g. exposure, revenue) are excluded because adjusting for them can introduce bias."
+    },
+    {
+      "name": "Correlation vs causation",
+      "kind": "caveat",
+      "text": "The DAG is an assumed structure. Association in data does not prove these arrows."
+    },
+    {
+      "name": "Possible unobserved confounder (U_unmeasured)",
+      "kind": "threat to validity",
+      "text": "Drawn as a dashed node to remind readers that unmeasured causes of both treatment and outcome would bias estimates; refutation tests cannot rule this out."
+    }
+  ],
+  "gml": "graph [\n  directed 1\n  node [ id \"treatment\" label \"treatment\" ]\n  node [ id \"visit\" label \"visit\" ]\n  node [ id \"f0\" label \"f0\" ]\n  node [ id \"f1\" label \"f1\" ]\n  node [ id \"f2\" label \"f2\" ]\n  node [ id \"f3\" label \"f3\" ]\n  node [ id \"f4\" label \"f4\" ]\n  node [ id \"f5\" label \"f5\" ]\n  node [ id \"f6\" label \"f6\" ]\n  node [ id \"f7\" label \"f7\" ]\n  node [ id \"f8\" label \"f8\" ]\n  node [ id \"f9\" label \"f9\" ]\n  node [ id \"f10\" label \"f10\" ]\n  node [ id \"f11\" label \"f11\" ]\n  edge [ source \"treatment\" target \"visit\" ]\n  edge [ source \"f0\" target \"visit\" ]\n  edge [ source \"f1\" target \"visit\" ]\n  edge [ source \"f2\" target \"visit\" ]\n  edge [ source \"f3\" target \"visit\" ]\n  edge [ source \"f4\" target \"visit\" ]\n  edge [ source \"f5\" target \"visit\" ]\n  edge [ source \"f6\" target \"visit\" ]\n  edge [ source \"f7\" target \"visit\" ]\n  edge [ source \"f8\" target \"visit\" ]\n  edge [ source \"f9\" target \"visit\" ]\n  edge [ source \"f10\" target \"visit\" ]\n  edge [ source \"f11\" target \"visit\" ]\n]",
+  "disclaimer": "This graph is an assumption, not a discovered fact."
+}

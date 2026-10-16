@@ -1,0 +1,19 @@
+{
+  "customers_considered": 17990,
+  "customers_offered_discount": 1353,
+  "customers_without_discount": 16637,
+  "budget": 1000.0,
+  "expected_discount_spend": 999.9857938259017,
+  "budget_remaining": 0.014206174098262636,
+  "budget_utilization": 0.9999857938259017,
+  "estimated_incremental_contribution": 1097.1185035824935,
+  "discount_levels": [
+    0.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "margin_rate_assumption": 0.3,
+  "synthetic_data": true,
+  "optimizer": "greedy heuristic"
+}

@@ -1,0 +1,11 @@
+{
+  "metrics": {
+    "evaluation_dose": 10.0,
+    "test_rows": 3598,
+    "mean_predicted_effect": 0.07857473086875189,
+    "mean_synthetic_true_effect": 0.06220359060589216,
+    "mae_vs_synthetic_truth": 0.016982555296070335,
+    "rmse_vs_synthetic_truth": 0.021091757669905356
+  },
+  "warnings": []
+}

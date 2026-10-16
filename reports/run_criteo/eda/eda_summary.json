@@ -1,0 +1,110 @@
+{
+  "dataset": "criteo",
+  "shape": {
+    "rows": 100000,
+    "columns": 16
+  },
+  "feature_types": {
+    "numeric": [
+      "f0",
+      "f1",
+      "f2",
+      "f3",
+      "f4",
+      "f5",
+      "f6",
+      "f7",
+      "f8",
+      "f9",
+      "f10",
+      "f11"
+    ],
+    "categorical": []
+  },
+  "excluded_columns": {
+    "exposure": "post-treatment: whether the ad was actually seen (affected by treatment)",
+    "conversion": "alternative outcome (post-treatment)",
+    "treatment": "treatment",
+    "visit": "outcome"
+  },
+  "missing_by_column": {},
+  "duplicate_rows": 84,
+  "treatment": {
+    "column": "treatment",
+    "kind": "binary",
+    "group_share": {
+      "control": 0.1495,
+      "treated": 0.8505
+    }
+  },
+  "outcome_by_group": {
+    "outcome": "visit",
+    "control": {
+      "n": 14954,
+      "mean": 0.03878560920155143,
+      "ci95": [
+        0.03569087878123181,
+        0.04188033962187104
+      ]
+    },
+    "treated": {
+      "n": 85046,
+      "mean": 0.04896173835336171,
+      "ci95": [
+        0.047511442736366934,
+        0.05041203397035649
+      ]
+    },
+    "naive_difference": 0.010176129151810286
+  },
+  "covariate_smd": {
+    "f0": -0.002,
+    "f1": 0.0157,
+    "f2": -0.0072,
+    "f3": -0.0382,
+    "f4": 0.0074,
+    "f5": -0.0137,
+    "f6": -0.0296,
+    "f7": 0.0043,
+    "f8": -0.0246,
+    "f9": 0.0281,
+    "f10": 0.0084,
+    "f11": -0.0101
+  },
+  "imbalanced_features": [],
+  "segment_summary": {
+    "by": "f0",
+    "table": {
+      "('mean', 0)": {
+        "(12.615, 21.932]": 0.0631479736,
+        "(21.932, 24.478]": 0.0167731629,
+        "(24.478, 26.745]": 0.0127287192
+      },
+      "('mean', 1)": {
+        "(12.615, 21.932]": 0.0808963428,
+        "(21.932, 24.478]": 0.020146865,
+        "(24.478, 26.745]": 0.0137547694
+      },
+      "('size', 0)": {
+        "(12.615, 21.932]": 7427,
+        "(21.932, 24.478]": 3756,
+        "(24.478, 26.745]": 3771
+      },
+      "('size', 1)": {
+        "(12.615, 21.932]": 42573,
+        "(21.932, 24.478]": 21244,
+        "(24.478, 26.745]": 21229
+      }
+    }
+  },
+  "warnings": [
+    "84 duplicated rows present."
+  ],
+  "figures": [
+    "treatment_distribution.png",
+    "outcome_by_group.png",
+    "covariate_distributions.png",
+    "correlations.png"
+  ],
+  "caveat": "Observed group differences are descriptive. They are causal only if treatment assignment was randomised or fully explained by adjusted covariates."
+}

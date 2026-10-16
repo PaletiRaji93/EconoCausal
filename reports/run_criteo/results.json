@@ -1,0 +1,653 @@
+{
+  "dataset": "criteo",
+  "config": {
+    "estimator": "linear",
+    "nuisance": "gbm",
+    "cv": 3,
+    "seed": 42,
+    "fractions": [
+      0.6,
+      0.2,
+      0.2
+    ],
+    "randomized": true,
+    "refute": true,
+    "n_refute_sims": 5,
+    "refute_max_rows": 20000,
+    "run_dowhy": false,
+    "propensity_model": "logistic",
+    "uplift_ks": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "save_model": true
+  },
+  "warnings": [],
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "warnings": [
+      "84 fully duplicated rows (0.08%)."
+    ],
+    "summary": {
+      "n_rows": 100000,
+      "n_features": 12,
+      "n_treated": 85046,
+      "n_control": 14954,
+      "treated_share": 0.8505,
+      "outcome_kind": "binary",
+      "outcome_mean": 0.04744,
+      "missing_feature_frac_max": 0.0,
+      "duplicate_rows": 84
+    }
+  },
+  "eda": {
+    "dataset": "criteo",
+    "shape": {
+      "rows": 100000,
+      "columns": 16
+    },
+    "feature_types": {
+      "numeric": [
+        "f0",
+        "f1",
+        "f2",
+        "f3",
+        "f4",
+        "f5",
+        "f6",
+        "f7",
+        "f8",
+        "f9",
+        "f10",
+        "f11"
+      ],
+      "categorical": []
+    },
+    "excluded_columns": {
+      "exposure": "post-treatment: whether the ad was actually seen (affected by treatment)",
+      "conversion": "alternative outcome (post-treatment)",
+      "treatment": "treatment",
+      "visit": "outcome"
+    },
+    "missing_by_column": {},
+    "duplicate_rows": 84,
+    "treatment": {
+      "column": "treatment",
+      "kind": "binary",
+      "group_share": {
+        "control": 0.1495,
+        "treated": 0.8505
+      }
+    },
+    "outcome_by_group": {
+      "outcome": "visit",
+      "control": {
+        "n": 14954,
+        "mean": 0.03878560920155143,
+        "ci95": [
+          0.03569087878123181,
+          0.04188033962187104
+        ]
+      },
+      "treated": {
+        "n": 85046,
+        "mean": 0.04896173835336171,
+        "ci95": [
+          0.047511442736366934,
+          0.05041203397035649
+        ]
+      },
+      "naive_difference": 0.010176129151810286
+    },
+    "covariate_smd": {
+      "f0": -0.002,
+      "f1": 0.0157,
+      "f2": -0.0072,
+      "f3": -0.0382,
+      "f4": 0.0074,
+      "f5": -0.0137,
+      "f6": -0.0296,
+      "f7": 0.0043,
+      "f8": -0.0246,
+      "f9": 0.0281,
+      "f10": 0.0084,
+      "f11": -0.0101
+    },
+    "imbalanced_features": [],
+    "segment_summary": {
+      "by": "f0",
+      "table": {
+        "('mean', 0)": {
+          "(12.615, 21.932]": 0.0631479736,
+          "(21.932, 24.478]": 0.0167731629,
+          "(24.478, 26.745]": 0.0127287192
+        },
+        "('mean', 1)": {
+          "(12.615, 21.932]": 0.0808963428,
+          "(21.932, 24.478]": 0.020146865,
+          "(24.478, 26.745]": 0.0137547694
+        },
+        "('size', 0)": {
+          "(12.615, 21.932]": 7427,
+          "(21.932, 24.478]": 3756,
+          "(24.478, 26.745]": 3771
+        },
+        "('size', 1)": {
+          "(12.615, 21.932]": 42573,
+          "(21.932, 24.478]": 21244,
+          "(24.478, 26.745]": 21229
+        }
+      }
+    },
+    "warnings": [
+      "84 duplicated rows present."
+    ],
+    "figures": [
+      "treatment_distribution.png",
+      "outcome_by_group.png",
+      "covariate_distributions.png",
+      "correlations.png"
+    ],
+    "caveat": "Observed group differences are descriptive. They are causal only if treatment assignment was randomised or fully explained by adjusted covariates."
+  },
+  "dag": {
+    "assumptions": [
+      {
+        "name": "Randomised treatment",
+        "kind": "design assumption",
+        "text": "'treatment' was assigned at random, so no covariate affects assignment (no covariate->treatment edges). Verify with balance checks."
+      },
+      {
+        "name": "Overlap / positivity",
+        "kind": "identification assumption",
+        "text": "Every covariate profile has a non-zero chance of being treated and untreated. Checked empirically by propensity-score overlap diagnostics."
+      },
+      {
+        "name": "Consistency / SUTVA",
+        "kind": "identification assumption",
+        "text": "A unit's observed outcome equals its potential outcome under the treatment received, and one customer's treatment does not affect another's outcome (no interference)."
+      },
+      {
+        "name": "Pretreatment covariates only",
+        "kind": "design choice",
+        "text": "Covariates are measured before treatment. Post-treatment variables (e.g. exposure, revenue) are excluded because adjusting for them can introduce bias."
+      },
+      {
+        "name": "Correlation vs causation",
+        "kind": "caveat",
+        "text": "The DAG is an assumed structure. Association in data does not prove these arrows."
+      },
+      {
+        "name": "Possible unobserved confounder (U_unmeasured)",
+        "kind": "threat to validity",
+        "text": "Drawn as a dashed node to remind readers that unmeasured causes of both treatment and outcome would bias estimates; refutation tests cannot rule this out."
+      }
+    ],
+    "files": [
+      "dag/dag.png",
+      "dag/dag.json"
+    ]
+  },
+  "splits": {
+    "train": 60000,
+    "val": 20000,
+    "test": 20000
+  },
+  "propensity": {
+    "auc_oof": 0.5007530188246285,
+    "treated": {
+      "n": 51028,
+      "min": 0.7330450423478725,
+      "mean": 0.850452851504602,
+      "max": 0.9355406749088545
+    },
+    "control": {
+      "n": 8972,
+      "min": 0.7872948056750039,
+      "mean": 0.8503081526556119,
+      "max": 0.9244316194650893
+    },
+    "common_support": [
+      0.7872948056750039,
+      0.9244316194650893
+    ],
+    "frac_outside_common_support": 0.0003333333333333333,
+    "frac_extreme_propensity": 0.0,
+    "ess_treated": 51024.20234381303,
+    "ess_control": 8943.652599454701,
+    "warnings": [],
+    "overlap_ok": true,
+    "balance": {
+      "threshold": 0.1,
+      "max_abs_smd_before": 0.043860048021065086,
+      "n_imbalanced_before": 0,
+      "max_abs_smd_after": 0.0032300509081796993,
+      "n_imbalanced_after": 0,
+      "warnings": []
+    },
+    "balance_table": [
+      {
+        "feature": "f0",
+        "smd_before": 0.001,
+        "smd_after": -0.0001
+      },
+      {
+        "feature": "f1",
+        "smd_before": 0.0274,
+        "smd_after": -0.0017
+      },
+      {
+        "feature": "f2",
+        "smd_before": -0.0043,
+        "smd_after": -0.0008
+      },
+      {
+        "feature": "f3",
+        "smd_before": -0.0439,
+        "smd_after": 0.0014
+      },
+      {
+        "feature": "f4",
+        "smd_before": -0.0022,
+        "smd_after": -0.0008
+      },
+      {
+        "feature": "f5",
+        "smd_before": -0.0291,
+        "smd_after": 0.0032
+      },
+      {
+        "feature": "f6",
+        "smd_before": -0.0345,
+        "smd_after": 0.0005
+      },
+      {
+        "feature": "f7",
+        "smd_before": 0.0115,
+        "smd_after": -0.0018
+      },
+      {
+        "feature": "f8",
+        "smd_before": -0.0201,
+        "smd_after": 0.0006
+      },
+      {
+        "feature": "f9",
+        "smd_before": 0.0221,
+        "smd_after": -0.0003
+      },
+      {
+        "feature": "f10",
+        "smd_before": 0.0004,
+        "smd_after": -0.0008
+      },
+      {
+        "feature": "f11",
+        "smd_before": -0.0032,
+        "smd_after": 0.0006
+      }
+    ],
+    "method_note": "stabilised, trimmed IPW used for balance checks only; DML does not use these weights."
+  },
+  "dml": {
+    "summary": {
+      "version_id": "criteo-linear-20261014095013-42",
+      "dataset": "criteo",
+      "treatment": "treatment",
+      "outcome": "visit",
+      "n_train": 60000,
+      "n_treated_train": 51028,
+      "features": [
+        "f0",
+        "f1",
+        "f2",
+        "f3",
+        "f4",
+        "f5",
+        "f6",
+        "f7",
+        "f8",
+        "f9",
+        "f10",
+        "f11"
+      ],
+      "params": {
+        "estimator": "linear",
+        "nuisance": "gbm",
+        "cv": 3,
+        "seed": 42,
+        "n_estimators": 200,
+        "min_samples_leaf": 50
+      },
+      "trained_utc": "2026-10-14T09:50:13.097338+00:00",
+      "estimator_class": "LinearDML"
+    },
+    "ate_test": {
+      "ate": 0.0077074895989525955,
+      "ci95": [
+        0.0037981617626694315,
+        0.011616817435235755
+      ],
+      "ci_note": null
+    },
+    "heterogeneity_test": {
+      "quantiles": {
+        "q05": -0.0051869731623869555,
+        "q25": -0.002688999797011479,
+        "q50": -0.00018095155821556752,
+        "q75": 0.005771746855533491,
+        "q95": 0.05709308136771072
+      },
+      "mean": 0.0077074895989525955,
+      "std": 0.02361508523936532,
+      "share_positive": 0.48625,
+      "segments": {
+        "f0": {
+          "(12.615, 21.95]": {
+            "mean_cate": 0.013405409584084007,
+            "n": 10000
+          },
+          "(21.95, 24.489]": {
+            "mean_cate": 0.002120077256360897,
+            "n": 5000
+          },
+          "(24.489, 26.745]": {
+            "mean_cate": 0.0018990619712814715,
+            "n": 5000
+          }
+        },
+        "f1": {
+          "(10.059000000000001, 12.799]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f2": {
+          "(8.213000000000001, 8.728]": {
+            "mean_cate": 0.008976164339017195,
+            "n": 15000
+          },
+          "(8.728, 9.052]": {
+            "mean_cate": 0.0039014653787587945,
+            "n": 5000
+          }
+        },
+        "f3": {
+          "(-5.04, 4.68]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f4": {
+          "(10.280000000000001, 18.422]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f5": {
+          "(-3.1559999999999997, 4.115]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f6": {
+          "(-2.411, 0.294]": {
+            "mean_cate": 0.002716832218706042,
+            "n": 8362
+          },
+          "(-24.663, -6.699]": {
+            "mean_cate": 0.020750835651108707,
+            "n": 5306
+          },
+          "(-6.699, -2.411]": {
+            "mean_cate": 0.0033682417879736556,
+            "n": 6332
+          }
+        },
+        "f7": {
+          "(4.832999999999999, 11.997]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f8": {
+          "(3.681, 3.911]": {
+            "mean_cate": 0.027100211665162303,
+            "n": 5156
+          },
+          "(3.911, 3.972]": {
+            "mean_cate": 0.0009715104172376087,
+            "n": 14844
+          }
+        },
+        "f9": {
+          "(13.189, 63.139]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f10": {
+          "(5.2989999999999995, 6.473]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        },
+        "f11": {
+          "(-0.976, -0.169]": {
+            "mean_cate": 0.0077074895989525955,
+            "n": 20000
+          }
+        }
+      }
+    },
+    "cate_validation_mean": 0.007537694598742121,
+    "interpretation": "Estimated conditional effects (model-based), not observed individual facts."
+  },
+  "uplift": {
+    "metrics": {
+      "DML (causal)": {
+        "qini_coefficient": 71.97250420382156,
+        "auuc": 158.14234706574067,
+        "uplift_at_k": {
+          "10%": 0.09254901960784315,
+          "20%": 0.03886036930018763,
+          "30%": 0.031800426136363635
+        },
+        "total_incremental_outcomes": 172.33968572383822,
+        "random_ranking_qini_mean": 5.514348535983549,
+        "random_ranking_qini_sd": 17.359023510541967,
+        "qini_ci95": [
+          36.09774901804687,
+          118.88732000667925
+        ],
+        "decile_table": [
+          {
+            "bin": 1,
+            "n": 2000,
+            "n_treated": 1700,
+            "n_control": 300,
+            "rate_treated": 0.29588,
+            "rate_control": 0.20333,
+            "uplift": 0.09255
+          },
+          {
+            "bin": 2,
+            "n": 2000,
+            "n_treated": 1718,
+            "n_control": 282,
+            "rate_treated": 0.10244,
+            "rate_control": 0.11348,
+            "uplift": -0.01103
+          },
+          {
+            "bin": 3,
+            "n": 2000,
+            "n_treated": 1702,
+            "n_control": 298,
+            "rate_treated": 0.03173,
+            "rate_control": 0.01678,
+            "uplift": 0.01495
+          },
+          {
+            "bin": 4,
+            "n": 2000,
+            "n_treated": 1696,
+            "n_control": 304,
+            "rate_treated": 0.01415,
+            "rate_control": 0.00987,
+            "uplift": 0.00428
+          },
+          {
+            "bin": 5,
+            "n": 2000,
+            "n_treated": 1702,
+            "n_control": 298,
+            "rate_treated": 0.01058,
+            "rate_control": 0.01678,
+            "uplift": -0.0062
+          },
+          {
+            "bin": 6,
+            "n": 2000,
+            "n_treated": 1698,
+            "n_control": 302,
+            "rate_treated": 0.00648,
+            "rate_control": 0.00331,
+            "uplift": 0.00317
+          },
+          {
+            "bin": 7,
+            "n": 2000,
+            "n_treated": 1687,
+            "n_control": 313,
+            "rate_treated": 0.00593,
+            "rate_control": 0.00958,
+            "uplift": -0.00366
+          },
+          {
+            "bin": 8,
+            "n": 2000,
+            "n_treated": 1691,
+            "n_control": 309,
+            "rate_treated": 0.00355,
+            "rate_control": 0.00324,
+            "uplift": 0.00031
+          },
+          {
+            "bin": 9,
+            "n": 2000,
+            "n_treated": 1717,
+            "n_control": 283,
+            "rate_treated": 0.00175,
+            "rate_control": 0.0,
+            "uplift": 0.00175
+          },
+          {
+            "bin": 10,
+            "n": 2000,
+            "n_treated": 1698,
+            "n_control": 302,
+            "rate_treated": 0.0159,
+            "rate_control": 0.01656,
+            "uplift": -0.00066
+          }
+        ]
+      },
+      "T-learner (causal baseline)": {
+        "qini_coefficient": 15.247726509668441,
+        "auuc": 101.41756937158755,
+        "uplift_at_k": {
+          "10%": 0.06553137925556834,
+          "20%": 0.03213424692297931,
+          "30%": 0.016491552469984433
+        },
+        "total_incremental_outcomes": 172.33968572383822,
+        "random_ranking_qini_mean": 5.514348535983549,
+        "random_ranking_qini_sd": 17.359023510541967
+      },
+      "Response model (predictive, ignores treatment)": {
+        "qini_coefficient": 72.69341224835718,
+        "auuc": 158.86325511027627,
+        "uplift_at_k": {
+          "10%": 0.0814354840025785,
+          "20%": 0.04629851476858471,
+          "30%": 0.031713917382194354
+        },
+        "total_incremental_outcomes": 172.33968572383822,
+        "random_ranking_qini_mean": 5.514348535983549,
+        "random_ranking_qini_sd": 17.359023510541967
+      },
+      "Random": {
+        "qini_coefficient": 26.96040640952797,
+        "auuc": 113.13024927144707,
+        "uplift_at_k": {
+          "10%": 0.023169047233218356,
+          "20%": 0.02021415763425427,
+          "30%": 0.020059353525003636
+        },
+        "total_incremental_outcomes": 172.33968572383822,
+        "random_ranking_qini_mean": 5.514348535983549,
+        "random_ranking_qini_sd": 17.359023510541967
+      }
+    },
+    "evaluated_on": "held-out test split",
+    "definitions": "See evaluation/uplift_metrics.py docstring."
+  },
+  "refutation": [
+    {
+      "test": "placebo_treatment",
+      "engine": "native",
+      "status": "inconclusive",
+      "original_effect": 0.008905112235698882,
+      "new_effects": [
+        -0.003610632018429855,
+        0.0013507116814048387,
+        -0.008830317307614756,
+        -0.0031721581293653643,
+        -0.005729536946854783
+      ],
+      "mean_new_effect": -0.003998386544171983,
+      "method": "permute treatment labels; refit",
+      "interpretation": "Original effect is ~0, so a placebo comparison is uninformative.",
+      "limitations": "Cannot detect unobserved confounding; passing does not prove causality."
+    },
+    {
+      "test": "random_common_cause",
+      "engine": "native",
+      "status": "inconclusive",
+      "original_effect": 0.008905112235698882,
+      "new_effects": [
+        0.007708576305382957,
+        0.00875783849377821,
+        0.007856085801286102,
+        0.007905851797742964,
+        0.008964741955229519
+      ],
+      "mean_new_effect": 0.00823861887068395,
+      "method": "append N(0,1) noise covariate; refit",
+      "interpretation": "Original effect within placebo noise; relative change undefined.",
+      "limitations": "Cannot detect unobserved confounding; passing does not prove causality."
+    },
+    {
+      "test": "data_subset",
+      "engine": "native",
+      "status": "inconclusive",
+      "original_effect": 0.008905112235698882,
+      "new_effects": [
+        0.00917786326417627,
+        0.008284335484936876,
+        0.008760599946421461,
+        0.01017508302699472,
+        0.010430861872351427
+      ],
+      "mean_new_effect": 0.009365748718976151,
+      "method": "refit on random 80% subsets",
+      "interpretation": "Original effect within placebo noise; relative change undefined.",
+      "limitations": "Cannot detect unobserved confounding; passing does not prove causality."
+    }
+  ],
+  "model_path": "E:\\infotact_project1\\EconoCausal\\reports\\run_criteo\\model.joblib",
+  "model_version_id": "criteo-linear-20261014095013-42"
+}

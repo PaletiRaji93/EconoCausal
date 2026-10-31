@@ -1,5 +1,5 @@
 {
-  "version_id": "synthetic_retail-continuous-linear-20261014123859-42",
+  "version_id": "synthetic_retail-continuous-linear-20261017065237-42",
   "dataset": "synthetic_retail",
   "treatment": "discount_amount",
   "outcome": "conversion",
@@ -46,10 +46,10 @@
   "metrics": {
     "evaluation_dose": 10.0,
     "test_rows": 3598,
-    "mean_predicted_effect": 0.07857473086875189,
+    "mean_predicted_effect": 0.07872805776835162,
     "mean_synthetic_true_effect": 0.06220359060589216,
-    "mae_vs_synthetic_truth": 0.016982555296070335,
-    "rmse_vs_synthetic_truth": 0.021091757669905356
+    "mae_vs_synthetic_truth": 0.01706309903262748,
+    "rmse_vs_synthetic_truth": 0.021066174246216228
   },
   "note": "Synthetic educational evaluation only; results do not establish real-world discount effectiveness. true_effect is used only for evaluation, never as a model feature."
 }

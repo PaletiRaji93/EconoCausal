@@ -1,0 +1,15 @@
+,value
+total_customers,3000
+treated_customers,1575
+untreated_customers,1425
+propensity_min,0.23720875507940473
+propensity_max,0.8488831684532565
+treated_score_min,0.23720875507940473
+treated_score_max,0.8488831684532565
+control_score_min,0.2524967735916328
+control_score_max,0.8341246391313041
+overlap_exists,True
+overlap_lower,0.2524967735916328
+overlap_upper,0.8341246391313041
+weights_min,1.1780184095558077
+weights_max,6.0286229055536635

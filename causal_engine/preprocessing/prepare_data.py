@@ -12,12 +12,21 @@ are intentionally excluded from the feature matrix.
 from pathlib import Path
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
+
+# ---------------------------------------------------------
+# 1. PROJECT PATHS AND CONFIGURATION
+# ---------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-INPUT_PATH = PROJECT_ROOT / "data" / "sample" / "retail_campaign.csv"
+INPUT_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "sample"
+    / "retail_campaign.csv"
+)
+
 OUTPUT_DIR = PROJECT_ROOT / "data" / "processed"
 
 FEATURE_COLUMNS = [
@@ -31,8 +40,13 @@ TREATMENT_COLUMN = "assigned"
 OUTCOME_COLUMN = "converted"
 
 
+# ---------------------------------------------------------
+# 2. LOAD AND VALIDATE RAW DATA
+# ---------------------------------------------------------
+
 def load_campaign_data(path: Path = INPUT_PATH) -> pd.DataFrame:
     """Load campaign records and verify required columns."""
+
     if not path.exists():
         raise FileNotFoundError(
             f"Dataset not found: {path}. "
@@ -60,15 +74,25 @@ def load_campaign_data(path: Path = INPUT_PATH) -> pd.DataFrame:
     if df.empty:
         raise ValueError("The dataset is empty.")
 
+    # Customer ID validation
     if df["customer_id"].isna().any():
         raise ValueError("Customer IDs contain missing values.")
 
     if df["customer_id"].duplicated().any():
         raise ValueError("Duplicate customer IDs were found.")
 
-    if df[list(required - {"customer_id"})].isna().any().any():
-        raise ValueError("Required data contains missing values.")
+    # Missing-value validation
+    validation_columns = list(required - {"customer_id"})
 
+    missing_counts = df[validation_columns].isnull().sum()
+
+    if missing_counts.any():
+        raise ValueError(
+            "Missing values found:\n"
+            f"{missing_counts[missing_counts > 0]}"
+        )
+
+    # Treatment and outcome must be binary
     if not df[TREATMENT_COLUMN].isin([0, 1]).all():
         raise ValueError("Treatment must contain only 0 or 1.")
 
@@ -80,26 +104,75 @@ def load_campaign_data(path: Path = INPUT_PATH) -> pd.DataFrame:
             "Both treated and untreated customers are required."
         )
 
+    # Numeric feature validation
+    for column in FEATURE_COLUMNS:
+        if not pd.api.types.is_numeric_dtype(df[column]):
+            raise ValueError(
+                f"Feature '{column}' must be numeric."
+            )
+
+    # Non-negative economic values
+    for column in ["discount_amount", "order_value"]:
+        if (df[column] < 0).any():
+            raise ValueError(
+                f"Column '{column}' cannot contain negative values."
+            )
+
+    # Untreated customers should not receive discounts
+    untreated = df[TREATMENT_COLUMN] == 0
+
+    if (df.loc[untreated, "discount_amount"] != 0).any():
+        raise ValueError(
+            "Untreated customers must have zero discount amount."
+        )
+
     return df
 
 
-def prepare_features(df: pd.DataFrame) -> tuple:
+# ---------------------------------------------------------
+# 3. PREPARE FEATURES, TREATMENT AND OUTCOME
+# ---------------------------------------------------------
+
+def prepare_features(
+    df: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.Series, pd.Series]:
     """Separate pretreatment features, treatment and outcome."""
+
     X = df[FEATURE_COLUMNS].copy()
+
     treatment = df[TREATMENT_COLUMN].astype(int).copy()
+
     outcome = df[OUTCOME_COLUMN].astype(int).copy()
 
-    if not all(
-        pd.api.types.is_numeric_dtype(X[column])
-        for column in X.columns
-    ):
-        raise ValueError("All model features must be numeric.")
+    # Check that all features are numeric
+    for column in X.columns:
+        if not pd.api.types.is_numeric_dtype(X[column]):
+            raise ValueError(
+                f"Feature '{column}' must be numeric."
+            )
 
-    if not X.map(lambda column: column.notna().all()).all():
-        raise ValueError("Features contain missing values.")
+    # Correct missing-value validation
+    if X.isnull().any().any():
+        raise ValueError(
+            "Features contain missing values."
+        )
+
+    if treatment.isnull().any():
+        raise ValueError(
+            "Treatment contains missing values."
+        )
+
+    if outcome.isnull().any():
+        raise ValueError(
+            "Outcome contains missing values."
+        )
 
     return X, treatment, outcome
 
+
+# ---------------------------------------------------------
+# 4. SAVE PREPARED DATASET
+# ---------------------------------------------------------
 
 def save_prepared_data(
     df: pd.DataFrame,
@@ -107,43 +180,101 @@ def save_prepared_data(
     treatment: pd.Series,
     outcome: pd.Series,
 ) -> Path:
-    """Save a clean modelling dataset for reproducible analysis."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    """Save a clean modelling dataset."""
+
+    OUTPUT_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     prepared = X.copy()
+
     prepared["assigned"] = treatment.to_numpy()
+
     prepared["converted"] = outcome.to_numpy()
 
-    # Keep the customer identifier for traceability, not modelling.
-    prepared.insert(0, "customer_id", df["customer_id"].to_numpy())
+    # Preserve customer ID for traceability
+    # It will not be used as a model feature.
+    prepared.insert(
+        0,
+        "customer_id",
+        df["customer_id"].to_numpy(),
+    )
 
     output_path = OUTPUT_DIR / "causal_dataset.csv"
-    prepared.to_csv(output_path, index=False)
+
+    prepared.to_csv(
+        output_path,
+        index=False,
+    )
 
     return output_path
 
 
+# ---------------------------------------------------------
+# 5. MAIN EXECUTION
+# ---------------------------------------------------------
+
 def main() -> None:
     """Run preprocessing and print a concise summary."""
+
+    print("\nStarting causal data preprocessing...\n")
+
     df = load_campaign_data()
+
     X, treatment, outcome = prepare_features(df)
 
-    output_path = save_prepared_data(df, X, treatment, outcome)
+    output_path = save_prepared_data(
+        df,
+        X,
+        treatment,
+        outcome,
+    )
 
-    print("Preprocessing completed successfully.")
-    print(f"Input rows: {len(df)}")
+    print("Preprocessing completed successfully!")
+
+    print("\nDATASET SUMMARY")
+    print("------------------------------")
+
+    print(f"Total customers: {len(df)}")
+
     print(f"Feature columns: {list(X.columns)}")
+
     print(f"Treatment column: {TREATMENT_COLUMN}")
+
     print(f"Outcome column: {OUTCOME_COLUMN}")
+
     print(f"Treated customers: {int(treatment.sum())}")
-    print(f"Untreated customers: {int((treatment == 0).sum())}")
-    print(f"Overall conversion rate: {outcome.mean():.4f}")
-    print(f"Saved prepared dataset: {output_path}")
 
     print(
-        "\nNote: discount_amount and order_value are excluded "
-        "from the feature matrix to avoid post-treatment leakage."
+        "Untreated customers: "
+        f"{int((treatment == 0).sum())}"
     )
+
+    print(
+        f"Overall conversion rate: {outcome.mean():.4f}"
+    )
+
+    print(
+        f"Treated conversion rate: "
+        f"{outcome[treatment == 1].mean():.4f}"
+    )
+
+    print(
+        f"Untreated conversion rate: "
+        f"{outcome[treatment == 0].mean():.4f}"
+    )
+
+    print("\nOUTPUT")
+    print("------------------------------")
+
+    print(f"Saved prepared dataset:\n{output_path}")
+
+    print("\nExcluded post-treatment columns:")
+    print("- discount_amount")
+    print("- order_value")
+
+    print("\nCausal preprocessing finished successfully!")
 
 
 if __name__ == "__main__":

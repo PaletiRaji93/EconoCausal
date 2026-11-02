@@ -1,13 +1,18 @@
-
 """Budget-constrained discount allocation for EconoCausal.
 
-Uses estimated causal conversion lift and synthetic business assumptions.
-The greedy allocator is a heuristic, not a globally optimal solver.
+Uses SciPy Mixed-Integer Linear Programming (MILP) to maximize
+estimated incremental contribution under an expected discount budget.
+
+Results are based on synthetic data and business assumptions.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+
+from scipy.optimize import Bounds, LinearConstraint, milp
+from scipy.sparse import coo_matrix
 
 
 def optimize_discount_allocation(
@@ -18,136 +23,288 @@ def optimize_discount_allocation(
     discount_levels: tuple[float, ...] = (0.0, 5.0, 10.0, 20.0),
     margin_rate: float = 0.30,
 ) -> tuple[pd.DataFrame, dict]:
-    """Recommend discounts without exceeding the expected discount budget.
+    """Optimize customer discount allocation using SciPy MILP.
+
+    Each customer can receive at most one positive discount.
+
+    The objective maximizes estimated incremental contribution,
+    subject to the expected discount spend not exceeding the budget.
 
     Assumptions:
-    - `baseline_conversion` estimates conversion probability without a discount.
-    - `effect_per_dollar` estimates conversion-probability lift per discount dollar.
-    - `avg_basket` is the expected gross basket value.
+    - baseline_conversion estimates conversion without a discount.
+    - effect_per_dollar estimates conversion lift per discount dollar.
+    - avg_basket is the expected gross basket value.
     - Discount cost is incurred only when a customer converts.
-    - Contribution margin is represented by `margin_rate`.
-
-    The allocator greedily chooses positive-value offers by contribution per
-    expected discount cost, with at most one offer per customer.
+    - avg_basket * margin_rate represents baseline contribution margin.
+    - The estimated causal effect is linear in discount amount.
     """
-    if budget < 0:
-        raise ValueError("budget must be non-negative")
-    if not 0 < margin_rate <= 1:
-        raise ValueError("margin_rate must be in (0, 1]")
+
+    # ---------------------------------------------------------
+    # 1. Validate inputs
+    # ---------------------------------------------------------
+    if not isinstance(customers, pd.DataFrame):
+        raise TypeError("customers must be a pandas DataFrame")
+
+    if "avg_basket" not in customers.columns:
+        raise ValueError("customers must contain avg_basket")
+
     if not customers.index.is_unique:
         raise ValueError("customers must have a unique index")
 
-    required = {"avg_basket"}
-    missing = required - set(customers.columns)
-    if missing:
-        raise ValueError(f"Missing required customer columns: {sorted(missing)}")
+    if not np.isfinite(budget) or budget < 0:
+        raise ValueError("budget must be finite and non-negative")
 
-    levels = sorted(set(float(d) for d in discount_levels))
-    if not levels or levels[0] != 0.0 or any(d < 0 for d in levels):
-        raise ValueError("Discount levels must include 0 and be non-negative")
+    if not np.isfinite(margin_rate) or not 0 < margin_rate <= 1:
+        raise ValueError("margin_rate must be in (0, 1]")
+
+    n = len(customers)
 
     p0 = np.asarray(baseline_conversion, dtype=float).reshape(-1)
     slope = np.asarray(effect_per_dollar, dtype=float).reshape(-1)
     basket = customers["avg_basket"].to_numpy(dtype=float)
 
-    n = len(customers)
     if len(p0) != n or len(slope) != n:
         raise ValueError("Predictions must have one value per customer")
-    if not np.isfinite(p0).all() or not np.isfinite(slope).all():
-        raise ValueError("Predictions must contain finite values")
-    if not np.isfinite(basket).all() or (basket < 0).any():
-        raise ValueError("avg_basket must contain finite non-negative values")
+
+    if not (
+        np.isfinite(p0).all()
+        and np.isfinite(slope).all()
+        and np.isfinite(basket).all()
+    ):
+        raise ValueError("Inputs must contain only finite values")
+
     if ((p0 < 0) | (p0 > 1)).any():
-        raise ValueError("Baseline conversion probabilities must be in [0, 1]")
+        raise ValueError("Baseline probabilities must be in [0, 1]")
 
-    # Every customer starts with no discount and zero incremental contribution.
-    chosen_dose = np.zeros(n, dtype=float)
-    chosen_probability = p0.copy()
-    chosen_spend = np.zeros(n, dtype=float)
-    chosen_value = np.zeros(n, dtype=float)
+    if (basket < 0).any():
+        raise ValueError("avg_basket must be non-negative")
 
-    offers = []
-    for i in range(n):
-        for dose in levels:
-            if dose == 0:
-                continue
+    levels = np.asarray(discount_levels, dtype=float)
 
-            lift = slope[i] * dose
-            probability = float(np.clip(p0[i] + lift, 0.0, 1.0))
+    if levels.ndim != 1 or len(levels) == 0:
+        raise ValueError("discount_levels must be a non-empty list")
 
-            # Incremental contribution versus no discount.
-            contribution = (
-                probability * (basket[i] - dose) * margin_rate
-                - p0[i] * basket[i] * margin_rate
-            )
+    if not np.isfinite(levels).all() or (levels < 0).any():
+        raise ValueError("Discount levels must be finite and non-negative")
 
-            # Expected discount expense, assuming it is paid on conversion.
-            spend = probability * dose
+    if len(np.unique(levels)) != len(levels):
+        raise ValueError("Discount levels must be unique")
 
-            if contribution > 0 and spend > 0:
-                offers.append({
-                    "customer_position": i,
-                    "discount_amount": dose,
-                    "conversion_probability": probability,
-                    "expected_discount_spend": spend,
-                    "incremental_contribution": contribution,
-                    "value_per_spend": contribution / spend,
-                })
+    if not np.any(levels == 0):
+        raise ValueError("Discount levels must include zero")
 
-    # Greedy heuristic: highest estimated contribution per expected dollar first.
-    offers.sort(
-        key=lambda offer: (
-            -offer["value_per_spend"],
-            -offer["incremental_contribution"],
-            offer["customer_position"],
-        )
-    )
+    levels = np.sort(levels)
+    positive_levels = levels[levels > 0]
 
-    assigned = np.zeros(n, dtype=bool)
-    expected_spend = 0.0
-    total_value = 0.0
-
-    for offer in offers:
-        i = offer["customer_position"]
-        if assigned[i]:
-            continue
-
-        cost = offer["expected_discount_spend"]
-        if expected_spend + cost > budget + 1e-9:
-            continue
-
-        assigned[i] = True
-        chosen_dose[i] = offer["discount_amount"]
-        chosen_probability[i] = offer["conversion_probability"]
-        chosen_spend[i] = cost
-        chosen_value[i] = offer["incremental_contribution"]
-        expected_spend += cost
-        total_value += offer["incremental_contribution"]
-
+    # ---------------------------------------------------------
+    # 2. Initialize recommendation results
+    # ---------------------------------------------------------
     result = customers.copy()
+
     result["baseline_conversion_probability"] = p0
     result["estimated_effect_per_discount_dollar"] = slope
-    result["recommended_discount"] = chosen_dose
-    result["estimated_conversion_probability"] = chosen_probability
-    result["expected_discount_spend"] = chosen_spend
-    result["estimated_incremental_contribution"] = chosen_value
+    result["recommended_discount"] = 0.0
+    result["estimated_conversion_probability"] = p0
+    result["expected_discount_spend"] = 0.0
+    result["estimated_incremental_contribution"] = 0.0
 
-    summary = {
-        "customers_considered": int(n),
-        "customers_offered_discount": int(assigned.sum()),
-        "customers_without_discount": int((~assigned).sum()),
-        "budget": float(budget),
-        "expected_discount_spend": float(expected_spend),
-        "budget_remaining": float(max(0.0, budget - expected_spend)),
-        "budget_utilization": float(expected_spend / budget) if budget else 0.0,
-        "estimated_incremental_contribution": float(total_value),
-        "discount_levels": levels,
-        "margin_rate_assumption": float(margin_rate),
-        "synthetic_data": True,
-        "optimizer": "greedy heuristic",
-    }
+    def make_summary(spend: float, contribution: float, offered: int):
+        return {
+            "customers_considered": int(n),
+            "customers_offered_discount": int(offered),
+            "customers_without_discount": int(n - offered),
+            "budget": float(budget),
+            "expected_discount_spend": float(spend),
+            "budget_remaining": float(max(0.0, budget - spend)),
+            "budget_utilization": float(spend / budget) if budget > 0 else 0.0,
+            "estimated_incremental_contribution": float(contribution),
+            "discount_levels": levels.tolist(),
+            "margin_rate_assumption": float(margin_rate),
+            "synthetic_data": True,
+            "optimizer": "SciPy MILP",
+        }
 
-    if expected_spend > budget + 1e-7:
-        raise RuntimeError("Budget constraint violated")
+    if n == 0 or len(positive_levels) == 0 or budget == 0:
+        return result, make_summary(0.0, 0.0, 0)
+
+    # ---------------------------------------------------------
+    # 3. Create possible customer-discount offers
+    # ---------------------------------------------------------
+    customer_ids = []
+    doses = []
+    probabilities = []
+    spends = []
+    contributions = []
+
+    baseline_margin = basket * margin_rate
+
+    for i in range(n):
+        for dose in positive_levels:
+
+            # Estimated conversion probability after discount.
+            probability = float(
+                np.clip(p0[i] + slope[i] * dose, 0.0, 1.0)
+            )
+
+            # Estimated incremental contribution versus no discount.
+            contribution = (
+                probability * (baseline_margin[i] - dose)
+                - p0[i] * baseline_margin[i]
+            )
+
+            # Expected discount expense.
+            spend = probability * dose
+
+            # Offers with negative contribution cannot improve
+            # a maximization objective, so they can be excluded.
+            if contribution > 0 and spend > 0:
+                customer_ids.append(i)
+                doses.append(dose)
+                probabilities.append(probability)
+                spends.append(spend)
+                contributions.append(contribution)
+
+    if not customer_ids:
+        return result, make_summary(0.0, 0.0, 0)
+
+    customer_ids = np.asarray(customer_ids, dtype=int)
+    doses = np.asarray(doses, dtype=float)
+    probabilities = np.asarray(probabilities, dtype=float)
+    spends = np.asarray(spends, dtype=float)
+    contributions = np.asarray(contributions, dtype=float)
+
+    n_variables = len(customer_ids)
+
+    # ---------------------------------------------------------
+    # 4. Build optimization constraints
+    # ---------------------------------------------------------
+    # Each decision variable represents one customer-discount offer.
+    #
+    # Constraint A:
+    # Each customer can receive at most one positive discount.
+    #
+    # Constraint B:
+    # Total expected discount spend cannot exceed the budget.
+
+    variable_ids = np.arange(n_variables)
+
+    row_indices = np.concatenate([
+        customer_ids,
+        np.full(n_variables, n, dtype=int),
+    ])
+
+    column_indices = np.concatenate([
+        variable_ids,
+        variable_ids,
+    ])
+
+    matrix_values = np.concatenate([
+        np.ones(n_variables),
+        spends,
+    ])
+
+    constraint_matrix = coo_matrix(
+        (matrix_values, (row_indices, column_indices)),
+        shape=(n + 1, n_variables),
+    ).tocsr()
+
+    lower_bounds = np.full(n + 1, -np.inf)
+
+    upper_bounds = np.concatenate([
+        np.ones(n),
+        [float(budget)],
+    ])
+
+    constraints = LinearConstraint(
+        constraint_matrix,
+        lb=lower_bounds,
+        ub=upper_bounds,
+    )
+
+    # ---------------------------------------------------------
+    # 5. Solve the MILP optimization problem
+    # ---------------------------------------------------------
+    # SciPy milp minimizes the objective.
+    # Negating contribution converts maximization into minimization.
+
+    optimization_result = milp(
+        c=-contributions,
+        integrality=np.ones(n_variables),
+        bounds=Bounds(
+            lb=np.zeros(n_variables),
+            ub=np.ones(n_variables),
+        ),
+        constraints=constraints,
+        options={"disp": False},
+    )
+
+    if not optimization_result.success:
+        raise RuntimeError(
+            "MILP optimization failed: "
+            + str(optimization_result.message)
+        )
+
+    # ---------------------------------------------------------
+    # 6. Apply selected customer-discount offers
+    # ---------------------------------------------------------
+    # # Identify which discount offers the MILP solver selected.
+    selected = optimization_result.x > 0.5
+
+    # Get positions of selected offers.
+    selected_positions = np.flatnonzero(selected)
+
+    # Get corresponding customer positions.
+    selected_customers = customer_ids[selected_positions]
+
+    # Initialize customer recommendations.
+    result["recommended_discount"] = 0.0
+    result["estimated_conversion_probability"] = p0
+    result["expected_discount_spend"] = 0.0
+    result["estimated_incremental_contribution"] = 0.0
+
+    # Assign the selected recommendations using positional indexing.
+    result.iloc[
+        selected_customers,
+        result.columns.get_loc("recommended_discount"),
+    ] = doses[selected_positions]
+
+    result.iloc[
+        selected_customers,
+        result.columns.get_loc("estimated_conversion_probability"),
+    ] = probabilities[selected_positions]
+
+    result.iloc[
+        selected_customers,
+        result.columns.get_loc("expected_discount_spend"),
+    ] = spends[selected_positions]
+
+    result.iloc[
+        selected_customers,
+        result.columns.get_loc("estimated_incremental_contribution"),
+    ] = contributions[selected_positions]
+
+    # ---------------------------------------------------------
+    # 7. Calculate final budget summary
+    # ---------------------------------------------------------
+    total_spend = float(result["expected_discount_spend"].sum())
+
+    total_contribution = float(
+        result["estimated_incremental_contribution"].sum()
+    )
+
+    customers_offered = int(
+        (result["recommended_discount"] > 0).sum()
+    )
+
+    if total_spend > budget + 1e-7:
+        raise RuntimeError("MILP solution violated the budget constraint")
+
+    summary = make_summary(
+        spend=total_spend,
+        contribution=total_contribution,
+        offered=customers_offered,
+    )
+
+    summary["solver_status"] = str(optimization_result.message)
 
     return result, summary

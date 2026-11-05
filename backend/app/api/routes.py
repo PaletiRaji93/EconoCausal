@@ -347,10 +347,15 @@ def retail_optimize(request: RetailOptimizeRequest) -> dict:
             "total_recommendations": int(len(recommendations)),
             "synthetic_data": True,
             "note": (
-                "Estimated results depend on the fitted models and "
-                "business assumptions. The greedy allocator is a heuristic, "
-                "not a globally optimal solver."
-            ),
+            "Estimated results depend on the fitted causal model, "
+            "baseline conversion model, and business assumptions. "
+            "Discount allocation uses SciPy Mixed-Integer Linear "
+            "Programming (MILP) to maximize estimated incremental "
+            "contribution under an expected discount-spend budget. "
+            "Results are based on synthetic educational data and "
+            "are not guaranteed real-world outcomes."
+    ),
+            
         }
     except (ValueError, TypeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

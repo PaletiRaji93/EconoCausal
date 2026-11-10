@@ -1,0 +1,20 @@
+{
+  "customers_considered": 17990,
+  "customers_offered_discount": 1232,
+  "customers_without_discount": 16758,
+  "budget": 1000.0,
+  "expected_discount_spend": 999.9902863348248,
+  "budget_remaining": 0.009713665175240749,
+  "budget_utilization": 0.9999902863348248,
+  "estimated_incremental_contribution": 420.17957095828854,
+  "discount_levels": [
+    0.0,
+    5.0,
+    10.0,
+    20.0
+  ],
+  "margin_rate_assumption": 0.3,
+  "synthetic_data": true,
+  "optimizer": "SciPy MILP",
+  "solver_status": "Optimization terminated successfully. (HiGHS Status 7: Optimal)"
+}

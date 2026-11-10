@@ -1,32 +1,34 @@
-@'
-
-# Python virtual environments
+﻿# Python virtual environments
 Econoenv/
 .venv/
 venv/
 
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
 # Frontend dependencies and build output
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 
 # Local environment variables and secrets
 .env
 .env.*
 !.env.example
 
+# Raw datasets
+data/raw/
+
+# Local archives and old integration copy
+archive/
+EconoCausal_part1_2/
+.dist/
+
 # Generated model backups
 reports/run_retail_continuous/*_backup.joblib
 reports/run_retail_continuous/*_backup.json
 
-# Local caches
-__pycache__/
-.pytest_cache/
-'@ | Add-Content .gitignore
-# Large raw datasets and duplicate project copy
-data/raw/
-EconoCausal_part1_2/
-
-# Generated backups
-backend/app/api/*.backup
-reports/run_retail_continuous/*_backup.joblib
-reports/run_retail_continuous/*_backup.json
+# Backup files
+*.backup

@@ -1,0 +1,4 @@
+strategy,customers_considered,customers_discounted,customers_without_discount,discount_5,discount_10,discount_20,model_estimated_spend,synthetic_true_expected_spend,budget,model_budget_compliant,synthetic_true_budget_compliant,synthetic_true_budget_remaining,budget_utilization_pct,synthetic_true_incremental_contribution,contribution_vs_oracle_pct
+DML,17990,1232,16758,1165,67,0,999.9902863348248,934.9467606398382,1000.0,True,True,65.0532393601618,93.49467606398382,205.77819279516171,87.48522358298244
+Random,17990,348,17642,118,114,116,999.9524618527226,906.0203482147379,1000.0,True,True,93.97965178526215,90.6020348214738,-575.3478556897378,-244.6052961652295
+Oracle,17990,1336,16654,1245,91,0,999.5688468417175,999.5688468417175,1000.0,True,True,0.43115315828254097,99.95688468417174,235.21479898828255,100.0
